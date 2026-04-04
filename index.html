@@ -7,41 +7,37 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    :root { --primary: #1e293b; --secondary: #334155; --accent: #0ea5e9; --success: #10b981; --bg: #f1f5f9; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #0f172a; }
+    :root { --primary: #1e293b; --secondary: #334155; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --bg: #f1f5f9; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #0f172a; }
     .container { max-width: 1400px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
     
-    h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+    h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 25px; }
     
-    /* Input Panels */
-    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    h3 { margin-top: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--secondary); margin-bottom: 15px; }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; }
+    h3 { margin-top: 0; font-size: 0.8rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 10px; }
     
-    input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
-    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-    button:hover { background: var(--accent); transform: translateY(-1px); }
-    .btn-del { background: #ef4444; width: auto; padding: 6px 12px; font-size: 0.75rem; margin: 0; }
+    input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; box-sizing: border-box; }
+    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; }
+    button:hover { opacity: 0.9; }
+    
+    .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 10px; font-size: 0.75rem; padding: 8px; }
+    .btn-danger-outline:hover { background: var(--danger); color: white; }
 
-    /* Mind Map (The Big View) */
-    .map-wrapper { position: relative; border: 2px solid #e2e8f0; border-radius: 15px; overflow: hidden; background: #fff; margin-top: 20px; }
-    #mindmap { width: 100%; height: 800px; cursor: grab; }
-    #mindmap:active { cursor: grabbing; }
-    .map-controls { position: absolute; bottom: 20px; right: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; font-size: 0.7rem; color: #64748b; pointer-events: none; }
-
-    /* Tables & Charts */
+    .map-wrapper { border: 2px solid #e2e8f0; border-radius: 15px; overflow: hidden; background: #fff; margin-top: 20px; }
+    #mindmap { width: 100%; height: 700px; cursor: grab; }
+    
     .visuals { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-    th { background: #f8fafc; font-weight: 600; }
-    .currency { font-weight: 700; color: var(--success); }
+    .btn-del-row { background: var(--danger); width: 30px; height: 30px; padding: 0; border-radius: 50%; line-height: 1; }
 
     /* D3 Styling */
-    .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; transition: stroke 0.3s; }
+    .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
     .client-box { fill: var(--primary); }
     .job-box { fill: var(--accent); }
     .employee-box { fill: var(--success); }
-    text { fill: white; font-size: 12px; font-weight: 500; pointer-events: none; }
+    text { fill: white; font-size: 12px; font-weight: 600; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -51,22 +47,28 @@
 
   <div class="panel-grid">
     <div class="card">
-      <h3>1. Register Client</h3>
-      <input id="newClient" placeholder="Company Name">
+      <h3>1. Client Management</h3>
+      <input id="newClient" placeholder="New Company Name">
       <button onclick="addClient()">Add Client</button>
+      <hr style="width:100%; margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+      <select id="deleteClientSelect"></select>
+      <button class="btn-danger-outline" onclick="deleteClient()">Delete Selected Client</button>
     </div>
 
     <div class="card">
-      <h3>2. Assign Job/Role</h3>
+      <h3>2. Job/Role Management</h3>
       <select id="clientSelect"></select>
-      <input id="newJob" placeholder="Job Position">
+      <input id="newJob" placeholder="New Job Position">
       <button onclick="addJob()">Assign Role</button>
+      <hr style="width:100%; margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+      <select id="deleteJobSelect"></select>
+      <button class="btn-danger-outline" onclick="deleteJobGroup()">Delete Selected Job</button>
     </div>
 
     <div class="card">
-      <h3>3. Add Candidate & Revenue</h3>
+      <h3>3. Candidate Entry</h3>
       <select id="jobSelect"></select>
-      <input id="staffName" placeholder="Candidate/TA Name">
+      <input id="staffName" placeholder="Candidate Name">
       <input id="revenue" type="number" placeholder="Fee (RM)">
       <button onclick="addStaff()">Finalize Entry</button>
     </div>
@@ -74,31 +76,27 @@
 
   <div class="visuals">
     <div class="card">
-      <h3>Revenue Overview (RM)</h3>
+      <h3>Revenue (RM)</h3>
       <canvas id="chart"></canvas>
-      <div style="margin-top:25px; max-height: 400px; overflow-y: auto;">
-        <h3>Activity Log</h3>
-        <table id="mainTable">
-          <thead><tr><th>Role Path</th><th>Name</th><th>Rev</th><th></th></tr></thead>
+      <div style="margin-top:20px; max-height: 300px; overflow-y: auto;">
+        <table>
+          <thead><tr><th>Path</th><th>Name</th><th>Rev</th><th></th></tr></thead>
           <tbody id="tableBody"></tbody>
         </table>
       </div>
     </div>
     
-    <div>
-      <h3>Organizational Mind Map (Scroll to Zoom, Drag to Move)</h3>
-      <div class="map-wrapper">
-        <svg id="mindmap"></svg>
-        <div class="map-controls">Use Mouse Wheel to Zoom • Drag to Pan</div>
-      </div>
+    <div class="map-wrapper">
+      <svg id="mindmap"></svg>
     </div>
   </div>
 </div>
 
 <script>
-  let data = JSON.parse(localStorage.getItem('brainhunters_data')) || [];
+  let data = JSON.parse(localStorage.getItem('brainhunters_v2')) || [];
   let chart;
 
+  // --- CREATE LOGIC ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
@@ -122,7 +120,6 @@
     const name = document.getElementById('staffName').value.trim();
     const rev = parseFloat(document.getElementById('revenue').value);
     if (ids.length < 2 || !name || isNaN(rev)) return;
-
     const client = data.find(c => c.id == ids[0]);
     const job = client.jobs.find(j => j.id == ids[1]);
     job.staff.push({ id: Date.now(), name, rev });
@@ -131,15 +128,36 @@
     document.getElementById('revenue').value = '';
   }
 
-  function deleteRecord(cId, jId, sId) {
+  // --- DELETE LOGIC ---
+  function deleteClient() {
+    const id = parseInt(document.getElementById('deleteClientSelect').value);
+    if (!id) return;
+    if (confirm("Delete this Client and ALL associated Jobs/Candidates?")) {
+      data = data.filter(c => c.id !== id);
+      saveAndRefresh();
+    }
+  }
+
+  function deleteJobGroup() {
+    const ids = document.getElementById('deleteJobSelect').value.split('|');
+    if (ids.length < 2) return;
+    if (confirm("Delete this Job and all Candidate records under it?")) {
+      const client = data.find(c => c.id == ids[0]);
+      client.jobs = client.jobs.filter(j => j.id != ids[1]);
+      saveAndRefresh();
+    }
+  }
+
+  function deleteCandidate(cId, jId, sId) {
     const client = data.find(c => c.id === cId);
     const job = client.jobs.find(j => j.id === jId);
     job.staff = job.staff.filter(s => s.id !== sId);
     saveAndRefresh();
   }
 
+  // --- UI UPDATES ---
   function saveAndRefresh() {
-    localStorage.setItem('brainhunters_data', JSON.stringify(data));
+    localStorage.setItem('brainhunters_v2', JSON.stringify(data));
     updateDropdowns();
     renderTable();
     renderChart();
@@ -147,16 +165,23 @@
   }
 
   function updateDropdowns() {
-    const cSelect = document.getElementById('clientSelect');
-    const jSelect = document.getElementById('jobSelect');
-    cSelect.innerHTML = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const cAdd = document.getElementById('clientSelect');
+    const cDel = document.getElementById('deleteClientSelect');
+    const jAdd = document.getElementById('jobSelect');
+    const jDel = document.getElementById('deleteJobSelect');
+
+    const clientOptions = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    cAdd.innerHTML = clientOptions;
+    cDel.innerHTML = clientOptions;
+
     let jobOptions = "";
     data.forEach(c => {
       c.jobs.forEach(j => {
         jobOptions += `<option value="${c.id}|${j.id}">${c.name} » ${j.title}</option>`;
       });
     });
-    jSelect.innerHTML = jobOptions;
+    jAdd.innerHTML = jobOptions;
+    jDel.innerHTML = jobOptions;
   }
 
   function renderTable() {
@@ -166,10 +191,10 @@
       c.jobs.forEach(j => {
         j.staff.forEach(s => {
           html += `<tr>
-            <td>${c.name} / ${j.title}</td>
+            <td>${j.title}</td>
             <td>${s.name}</td>
-            <td class="currency">RM${s.rev.toLocaleString()}</td>
-            <td><button class="btn-del" onclick="deleteRecord(${c.id}, ${j.id}, ${s.id})">×</button></td>
+            <td>RM${s.rev}</td>
+            <td><button class="btn-del-row" onclick="deleteCandidate(${c.id}, ${j.id}, ${s.id})">×</button></td>
           </tr>`;
         });
       });
@@ -188,11 +213,8 @@
     if (chart) chart.destroy();
     chart = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{ label: 'Revenue by Client (RM)', data: revs, backgroundColor: '#1e293b' }]
-      },
-      options: { responsive: true, plugins: { legend: { display: false } } }
+      data: { labels, datasets: [{ label: 'RM', data: revs, backgroundColor: '#1e293b' }] },
+      options: { plugins: { legend: { display: false } } }
     });
   }
 
@@ -202,20 +224,12 @@
     if (data.length === 0) return;
 
     const width = document.getElementById('mindmap').clientWidth;
-    const height = 800;
-
-    // Create a Zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([0.1, 3]) // min and max zoom
-      .on("zoom", (event) => {
-        mainGroup.attr("transform", event.transform);
-      });
-
+    const height = 700;
+    const zoom = d3.zoom().on("zoom", (e) => g.attr("transform", e.transform));
     svg.call(zoom);
+    const g = svg.append("g");
 
-    const mainGroup = svg.append("g");
-
-    const treeData = { name: "BH_ROOT", children: data.map(c => ({
+    const treeData = { name: "ROOT", children: data.map(c => ({
       name: c.name, type: "client", children: c.jobs.map(j => ({
         name: j.title, type: "job", children: j.staff.map(s => ({
           name: `${s.name} (RM${s.rev})`, type: "employee"
@@ -224,19 +238,14 @@
     }))};
 
     const root = d3.hierarchy(treeData);
-    // Dynamic width calculation based on content depth
-    const treeLayout = d3.tree().size([height - 100, width * 1.5]); 
+    const treeLayout = d3.tree().size([height - 100, width * 1.5]);
     treeLayout(root);
 
-    // Initial positioning to hide root and show clients on left
-    const initialTransform = d3.zoomIdentity.translate(-150, 50).scale(0.9);
-    svg.call(zoom.transform, initialTransform);
-
-    mainGroup.selectAll(".link").data(root.links().filter(d => d.source.depth > 0))
+    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0))
       .enter().append("path").attr("class", "link")
       .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
 
-    const node = mainGroup.selectAll(".node").data(root.descendants().filter(d => d.depth > 0))
+    const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0))
       .enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
 
     node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em")
@@ -251,7 +260,6 @@
   }
 
   saveAndRefresh();
-  window.addEventListener('resize', renderMindMap);
 </script>
 </body>
 </html>
