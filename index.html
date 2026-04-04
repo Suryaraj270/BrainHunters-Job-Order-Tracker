@@ -10,7 +10,6 @@
     :root { --primary: #0f172a; --accent: #3b82f6; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #1e293b; }
     
-    /* Navigation */
     nav { background: var(--primary); padding: 15px 30px; display: flex; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 1000; }
     nav button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 8px 18px; color: white; cursor: pointer; border-radius: 6px; font-weight: 500; transition: 0.3s; }
     nav button.active { background: var(--accent); border-color: var(--accent); }
@@ -26,25 +25,22 @@
     button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; }
     .btn-danger { background: var(--danger); }
     
-    /* Daily Input Styling */
     .day-container { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
-    .cv-input { width: 45px !important; font-weight: bold; color: var(--accent); text-align: center; border-color: #3b82f644; }
+    .cv-input { width: 50px !important; font-weight: bold; color: var(--accent); text-align: center; }
     .remark-input { font-size: 0.75rem !important; }
 
-    /* Tables */
     .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
     th { background: #f8fafc; color: #475569; }
 
-    /* Alerts */
     .alert-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 20px; border-radius: 12px; margin-top: 20px; }
     .stagnant-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #ffe4e6; }
     .badge-red { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
 
-    /* Mind Map */
     #mindmap { width: 100%; height: 750px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
+    .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; }
   </style>
 </head>
 <body>
@@ -65,16 +61,16 @@
         <hr style="margin:15px 0; border:0; border-top:1px solid #eee">
         <select id="clientSelect"></select>
         <input id="newJob" placeholder="Job Role">
-        <input id="hc" type="number" placeholder="Headcount">
-        <input id="jobRev" type="number" placeholder="Fee (RM)">
+        <input id="hc" type="number" placeholder="Headcount Required">
+        <input id="jobRev" type="number" placeholder="Fee per Headcount (RM)">
         <button onclick="addJob()">Assign Role</button>
       </div>
 
       <div class="card">
-        <h3>2. Candidate Submission</h3>
+        <h3>2. TA Assignment</h3>
         <select id="jobSelect"></select>
-        <input id="staffName" placeholder="Candidate Name">
-        <button onclick="addCandidate()">Add Candidate</button>
+        <input id="staffName" placeholder="TA Name (Add one or more)">
+        <button onclick="addCandidate()">Add TA to Job</button>
       </div>
 
       <div class="card">
@@ -106,8 +102,9 @@
   <div class="container">
     <div style="display:grid; grid-template-columns: 1fr 2fr; gap:30px">
       <div class="card" style="background:var(--primary); color:white; text-align:center">
-        <h2>Grand Total</h2>
+        <h2>Grand Total Revenue</h2>
         <h1 id="totalRevVal" style="font-size:3rem; color:var(--success)">RM 0</h1>
+        <p style="font-size: 0.8rem; opacity: 0.7;">(Fee × Headcount)</p>
       </div>
       <div class="card">
         <canvas id="revChart"></canvas>
@@ -117,7 +114,7 @@
 </div>
 
 <script>
-  let data = JSON.parse(localStorage.getItem('bh_v5_final')) || [];
+  let data = JSON.parse(localStorage.getItem('bh_v6_final')) || [];
   let revChart;
 
   function showPage(pageId) {
@@ -125,12 +122,10 @@
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + pageId).classList.add('active');
     document.getElementById('btn-' + pageId).classList.add('active');
-    
     if(pageId === 'map') renderMindMap();
     if(pageId === 'rev') renderRevenuePage();
   }
 
-  // --- LOGIC ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
@@ -142,7 +137,7 @@
   function addJob() {
     const cId = parseInt(document.getElementById('clientSelect').value);
     const title = document.getElementById('newJob').value;
-    const hc = document.getElementById('hc').value || 1;
+    const hc = parseInt(document.getElementById('hc').value) || 1;
     const rev = parseFloat(document.getElementById('jobRev').value) || 0;
     if(!cId || !title) return;
     data.find(c => c.id === cId).jobs.push({ id: Date.now(), title, hc, rev, candidates: [] });
@@ -153,41 +148,47 @@
     const ids = document.getElementById('jobSelect').value.split('|');
     const name = document.getElementById('staffName').value.trim();
     if(ids.length < 2 || !name) return;
-    data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1])
-        .candidates.push({ 
+    
+    const job = data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1]);
+    
+    // Check if we already have a record for this job to append names
+    if (job.candidates.length === 0) {
+        job.candidates.push({ 
           id: Date.now(), 
-          name, 
+          names: [name], 
           color: d3.interpolateRainbow(Math.random()),
           mon: {cv:0, rem:''}, tue: {cv:0, rem:''}, wed: {cv:0, rem:''}, thu: {cv:0, rem:''}, fri: {cv:0, rem:''} 
         });
+    } else {
+        // Add name to existing list if not already there
+        if(!job.candidates[0].names.includes(name)) {
+            job.candidates[0].names.push(name);
+        }
+    }
     save();
+    document.getElementById('staffName').value = '';
   }
 
   function updateDay(cId, jId, sId, day, type, val) {
     const s = data.find(c => c.id == cId).jobs.find(j => j.id == jId).candidates.find(s => s.id == sId);
     s[day][type] = val;
-    localStorage.setItem('bh_v5_final', JSON.stringify(data));
-    renderStagnantJobs(); // Live update alert if CV count changes
-  }
-
-  function save() {
-    localStorage.setItem('bh_v5_final', JSON.stringify(data));
-    refreshUI();
-  }
-
-  // --- UI ---
-  function refreshUI() {
-    updateDropdowns();
-    renderClientTables();
+    localStorage.setItem('bh_v6_final', JSON.stringify(data));
     renderStagnantJobs();
   }
 
-  function updateDropdowns() {
+  function save() {
+    localStorage.setItem('bh_v6_final', JSON.stringify(data));
+    refreshUI();
+  }
+
+  function refreshUI() {
     const cOpts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('clientSelect').innerHTML = document.getElementById('delClientSelect').innerHTML = cOpts;
     let jOpts = "";
     data.forEach(c => c.jobs.forEach(j => jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`));
     document.getElementById('jobSelect').innerHTML = document.getElementById('delJobSelect').innerHTML = jOpts;
+    renderClientTables();
+    renderStagnantJobs();
   }
 
   function renderClientTables() {
@@ -198,25 +199,29 @@
         <table>
           <thead>
             <tr>
-              <th>Job / HC / Rev</th><th>Candidate</th>
+              <th>Job Order</th><th>HC</th><th>Total Revenue</th><th>TA Names</th>
               ${['Mon','Tue','Wed','Thu','Fri'].map(d => `<th>${d} (CV | Remark)</th>`).join('')}
             </tr>
           </thead>
           <tbody>
-            ${c.jobs.flatMap(j => j.candidates.length > 0 ? j.candidates.map(s => `
-              <tr>
-                <td>${j.title}<br><small>HC: ${j.hc} | RM${j.rev}</small></td>
-                <td><strong>${s.name}</strong></td>
-                ${['mon','tue','wed','thu','fri'].map(day => `
-                  <td>
-                    <div class="day-container">
-                      <input type="number" class="cv-input" value="${s[day].cv}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','cv',this.value)" placeholder="CV">
-                      <input class="remark-input" value="${s[day].rem}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','rem',this.value)" placeholder="Remark">
-                    </div>
-                  </td>
-                `).join('')}
-              </tr>
-            `) : `<tr><td>${j.title}</td><td colspan="6" style="text-align:center">No Submissions</td></tr>`).join('')}
+            ${c.jobs.map(j => {
+              const totalJobRev = j.rev * j.hc;
+              const s = j.candidates[0]; // Logic: one row per job order containing all names
+              return s ? `
+                <tr>
+                  <td>${j.title}</td><td>${j.hc}</td><td>RM ${totalJobRev.toLocaleString()}</td>
+                  <td>${s.names.map(n => `<span class="ta-tag">${n}</span>`).join('')}</td>
+                  ${['mon','tue','wed','thu','fri'].map(day => `
+                    <td>
+                      <div class="day-container">
+                        <input type="number" class="cv-input" value="${s[day].cv}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','cv',this.value)">
+                        <input class="remark-input" value="${s[day].rem}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','rem',this.value)" placeholder="Remark">
+                      </div>
+                    </td>
+                  `).join('')}
+                </tr>
+              ` : `<tr><td>${j.title}</td><td>${j.hc}</td><td>RM ${totalJobRev.toLocaleString()}</td><td colspan="6" style="text-align:center; color:#94a3b8">Assign a TA to begin tracking</td></tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -228,12 +233,10 @@
     let stagnant = [];
     data.forEach(c => c.jobs.forEach(j => {
       let total = 0;
-      j.candidates.forEach(s => {
-        ['mon','tue','wed','thu','fri'].forEach(d => total += parseInt(s[d].cv || 0));
-      });
+      j.candidates.forEach(s => { ['mon','tue','wed','thu','fri'].forEach(d => total += parseInt(s[d].cv || 0)); });
       if(total < 1) stagnant.push(`${c.name} - ${j.title}`);
     }));
-    list.innerHTML = stagnant.map(i => `<div class="stagnant-item"><span class="badge-red">0 CV</span> ${i}</div>`).join('') || "All roles have submissions.";
+    list.innerHTML = stagnant.map(i => `<div class="stagnant-item"><span class="badge-red">0 CV</span> ${i}</div>`).join('') || "All roles active.";
   }
 
   function renderMindMap() {
@@ -243,40 +246,44 @@
     
     const treeData = { name: "BH", children: data.map(c => ({
       name: c.name, type: 'c', children: c.jobs.map(j => ({
-        name: j.title, type: 'j', children: j.candidates.map(s => ({ name: s.name, type: 's', color: s.color }))
+        name: j.title, type: 'j', children: j.candidates.length > 0 ? j.candidates[0].names.map(n => ({ 
+          name: n, type: 's', color: j.candidates[0].color 
+        })) : []
       }))
     }))};
 
     const root = d3.hierarchy(treeData);
     d3.tree().size([height-100, width-250])(root);
-
-    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0))
-      .enter().append("path").attr("class", "link")
-      .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
-
-    const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0))
-      .enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
-
-    node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em").style("fill", "#fff")
-      .text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 20; });
-
-    node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", -12).attr("width", d => d.w).attr("height", 24).attr("rx", 4)
-      .style("fill", d => d.data.type === 's' ? d.data.color : (d.data.type === 'c' ? '#0f172a' : '#3b82f6'));
+    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0)).enter().append("path").attr("class", "link").attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+    const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0)).enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
+    node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em").style("fill", "#fff").text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 20; });
+    node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", -12).attr("width", d => d.w).attr("height", 24).attr("rx", 4).style("fill", d => d.data.type === 's' ? d.data.color : (d.data.type === 'c' ? '#0f172a' : '#3b82f6'));
   }
 
   function renderRevenuePage() {
     let total = 0;
     const clientData = data.map(c => {
-      let r = c.jobs.reduce((s, j) => s + parseFloat(j.rev), 0);
+      let r = c.jobs.reduce((s, j) => s + (parseFloat(j.rev) * parseInt(j.hc)), 0);
       total += r; return { n: c.name, v: r };
     });
     document.getElementById('totalRevVal').innerText = "RM " + total.toLocaleString();
     const ctx = document.getElementById('revChart').getContext('2d');
     if(revChart) revChart.destroy();
-    revChart = new Chart(ctx, { type: 'bar', data: { labels: clientData.map(d=>d.n), datasets: [{ label: 'RM', data: clientData.map(d=>d.v), backgroundColor: '#3b82f6' }] } });
+    revChart = new Chart(ctx, { type: 'bar', data: { labels: clientData.map(d=>d.n), datasets: [{ label: 'Total Revenue', data: clientData.map(d=>d.v), backgroundColor: '#3b82f6' }] } });
   }
 
-  // Initial Load
+  function deleteClient() {
+    const id = document.getElementById('delClientSelect').value;
+    if(confirm("Delete Client?")) { data = data.filter(c => c.id != id); save(); }
+  }
+
+  function deleteJob() {
+    const ids = document.getElementById('delJobSelect').value.split('|');
+    const c = data.find(c => c.id == ids[0]);
+    c.jobs = c.jobs.filter(j => j.id != ids[1]);
+    save();
+  }
+
   refreshUI();
 </script>
 </body>
