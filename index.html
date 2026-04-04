@@ -7,37 +7,31 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    :root { --primary: #1e293b; --secondary: #334155; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --bg: #f1f5f9; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #0f172a; }
-    .container { max-width: 1400px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 1400px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
     
-    h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 25px; }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; }
+    h3 { margin-top: 0; font-size: 0.8rem; text-transform: uppercase; color: #64748b; margin-bottom: 15px; }
     
-    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; }
-    h3 { margin-top: 0; font-size: 0.8rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 10px; }
-    
-    input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; box-sizing: border-box; }
+    input, select, button, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; box-sizing: border-box; }
     button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; }
-    button:hover { opacity: 0.9; }
+    .btn-danger { background: var(--danger); }
     
-    .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 10px; font-size: 0.75rem; padding: 8px; }
-    .btn-danger-outline:hover { background: var(--danger); color: white; }
+    /* Client Tables Section */
+    .client-report-card { margin-top: 40px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #fff; }
+    .client-title { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 15px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.85rem; }
+    th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+    th { background: #f8fafc; }
 
-    .map-wrapper { border: 2px solid #e2e8f0; border-radius: 15px; overflow: hidden; background: #fff; margin-top: 20px; }
-    #mindmap { width: 100%; height: 700px; cursor: grab; }
-    
-    .visuals { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-    .btn-del-row { background: var(--danger); width: 30px; height: 30px; padding: 0; border-radius: 50%; line-height: 1; }
+    .stagnant-section { background: #fff1f2; border: 1px solid #fecdd3; padding: 20px; border-radius: 12px; margin-top: 30px; }
+    .stagnant-tag { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; }
 
-    /* D3 Styling */
+    #mindmap { width: 100%; height: 600px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; margin-top: 20px; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
-    .client-box { fill: var(--primary); }
-    .job-box { fill: var(--accent); }
-    .employee-box { fill: var(--success); }
-    text { fill: white; font-size: 12px; font-weight: 600; pointer-events: none; }
+    text { fill: white; font-size: 11px; font-weight: 600; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -47,199 +41,187 @@
 
   <div class="panel-grid">
     <div class="card">
-      <h3>1. Client Management</h3>
+      <h3>1. Client & Job</h3>
       <input id="newClient" placeholder="New Company Name">
-      <button onclick="addClient()">Add Client</button>
-      <hr style="width:100%; margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-      <select id="deleteClientSelect"></select>
-      <button class="btn-danger-outline" onclick="deleteClient()">Delete Selected Client</button>
-    </div>
-
-    <div class="card">
-      <h3>2. Job/Role Management</h3>
+      <button onclick="addClient()">Register Client</button>
+      <hr style="margin:15px 0; border:0; border-top:1px solid #eee">
       <select id="clientSelect"></select>
-      <input id="newJob" placeholder="New Job Position">
-      <button onclick="addJob()">Assign Role</button>
-      <hr style="width:100%; margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-      <select id="deleteJobSelect"></select>
-      <button class="btn-danger-outline" onclick="deleteJobGroup()">Delete Selected Job</button>
+      <input id="newJob" placeholder="Job Position">
+      <input id="headcount" type="number" placeholder="Head Count Required">
+      <button onclick="addJob()">Add Job Order</button>
     </div>
 
     <div class="card">
-      <h3>3. Candidate Entry</h3>
+      <h3>2. Candidate Submission</h3>
       <select id="jobSelect"></select>
       <input id="staffName" placeholder="Candidate Name">
-      <input id="revenue" type="number" placeholder="Fee (RM)">
-      <button onclick="addStaff()">Finalize Entry</button>
+      <input id="cvCount" type="number" placeholder="CVs Submitted (Mon-Fri)">
+      <textarea id="remarks" placeholder="Remarks/Status"></textarea>
+      <button onclick="addStaff()">Submit Candidate</button>
+    </div>
+
+    <div class="card">
+      <h3>3. Management</h3>
+      <select id="delClientSelect"></select>
+      <button class="btn-danger" onclick="deleteClient()">Delete Client</button>
+      <select id="delJobSelect" style="margin-top:15px"></select>
+      <button class="btn-danger" onclick="deleteJob()">Delete Job</button>
     </div>
   </div>
 
-  <div class="visuals">
-    <div class="card">
-      <h3>Revenue (RM)</h3>
-      <canvas id="chart"></canvas>
-      <div style="margin-top:20px; max-height: 300px; overflow-y: auto;">
-        <table>
-          <thead><tr><th>Path</th><th>Name</th><th>Rev</th><th></th></tr></thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-    </div>
-    
-    <div class="map-wrapper">
-      <svg id="mindmap"></svg>
-    </div>
+  <div id="mindmap-container">
+    <h3>Live Organizational Map</h3>
+    <svg id="mindmap"></svg>
+  </div>
+
+  <div id="clientTablesSection"></div>
+
+  <div class="stagnant-section">
+    <h2 style="color:#9f1239">⚠️ Alert: Zero Submission Roles</h2>
+    <div id="stagnantList"></div>
   </div>
 </div>
 
 <script>
-  let data = JSON.parse(localStorage.getItem('brainhunters_v2')) || [];
-  let chart;
+  let data = JSON.parse(localStorage.getItem('bh_final_v1')) || [];
 
-  // --- CREATE LOGIC ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
     data.push({ id: Date.now(), name, jobs: [] });
-    saveAndRefresh();
+    save();
     document.getElementById('newClient').value = '';
   }
 
   function addJob() {
-    const clientId = parseInt(document.getElementById('clientSelect').value);
+    const cId = parseInt(document.getElementById('clientSelect').value);
     const title = document.getElementById('newJob').value.trim();
-    if (!clientId || !title) return;
-    const client = data.find(c => c.id === clientId);
-    client.jobs.push({ id: Date.now(), title, staff: [] });
-    saveAndRefresh();
+    const hc = document.getElementById('headcount').value || 1;
+    if (!cId || !title) return;
+    data.find(c => c.id === cId).jobs.push({ id: Date.now(), title, hc, candidates: [] });
+    save();
     document.getElementById('newJob').value = '';
   }
 
   function addStaff() {
     const ids = document.getElementById('jobSelect').value.split('|');
     const name = document.getElementById('staffName').value.trim();
-    const rev = parseFloat(document.getElementById('revenue').value);
-    if (ids.length < 2 || !name || isNaN(rev)) return;
-    const client = data.find(c => c.id == ids[0]);
-    const job = client.jobs.find(j => j.id == ids[1]);
-    job.staff.push({ id: Date.now(), name, rev });
-    saveAndRefresh();
+    const cvs = parseInt(document.getElementById('cvCount').value) || 0;
+    const rem = document.getElementById('remarks').value;
+    if (ids.length < 2 || !name) return;
+    
+    data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1])
+        .candidates.push({ id: Date.now(), name, cvs, rem, color: d3.interpolateRainbow(Math.random()) });
+    save();
     document.getElementById('staffName').value = '';
-    document.getElementById('revenue').value = '';
+    document.getElementById('remarks').value = '';
   }
 
-  // --- DELETE LOGIC ---
+  function removeCandidate(cId, jId, sId) {
+    const job = data.find(c => c.id == cId).jobs.find(j => j.id == jId);
+    job.candidates = job.candidates.filter(s => s.id !== sId);
+    save();
+  }
+
   function deleteClient() {
-    const id = parseInt(document.getElementById('deleteClientSelect').value);
-    if (!id) return;
-    if (confirm("Delete this Client and ALL associated Jobs/Candidates?")) {
-      data = data.filter(c => c.id !== id);
-      saveAndRefresh();
+    const id = document.getElementById('delClientSelect').value;
+    if(confirm("Delete Client?")) { data = data.filter(c => c.id != id); save(); }
+  }
+
+  function deleteJob() {
+    const ids = document.getElementById('delJobSelect').value.split('|');
+    if(confirm("Delete Job?")) {
+      const c = data.find(c => c.id == ids[0]);
+      c.jobs = c.jobs.filter(j => j.id != ids[1]);
+      save();
     }
   }
 
-  function deleteJobGroup() {
-    const ids = document.getElementById('deleteJobSelect').value.split('|');
-    if (ids.length < 2) return;
-    if (confirm("Delete this Job and all Candidate records under it?")) {
-      const client = data.find(c => c.id == ids[0]);
-      client.jobs = client.jobs.filter(j => j.id != ids[1]);
-      saveAndRefresh();
-    }
+  function save() {
+    localStorage.setItem('bh_final_v1', JSON.stringify(data));
+    refreshUI();
   }
 
-  function deleteCandidate(cId, jId, sId) {
-    const client = data.find(c => c.id === cId);
-    const job = client.jobs.find(j => j.id === jId);
-    job.staff = job.staff.filter(s => s.id !== sId);
-    saveAndRefresh();
-  }
-
-  // --- UI UPDATES ---
-  function saveAndRefresh() {
-    localStorage.setItem('brainhunters_v2', JSON.stringify(data));
+  function refreshUI() {
     updateDropdowns();
-    renderTable();
-    renderChart();
+    renderClientTables();
+    renderStagnantJobs();
     renderMindMap();
   }
 
   function updateDropdowns() {
-    const cAdd = document.getElementById('clientSelect');
-    const cDel = document.getElementById('deleteClientSelect');
-    const jAdd = document.getElementById('jobSelect');
-    const jDel = document.getElementById('deleteJobSelect');
+    const cSel = document.getElementById('clientSelect');
+    const dCSel = document.getElementById('delClientSelect');
+    const jSel = document.getElementById('jobSelect');
+    const dJSel = document.getElementById('delJobSelect');
 
-    const clientOptions = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    cAdd.innerHTML = clientOptions;
-    cDel.innerHTML = clientOptions;
+    const opts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    cSel.innerHTML = dCSel.innerHTML = opts;
 
-    let jobOptions = "";
-    data.forEach(c => {
-      c.jobs.forEach(j => {
-        jobOptions += `<option value="${c.id}|${j.id}">${c.name} » ${j.title}</option>`;
-      });
-    });
-    jAdd.innerHTML = jobOptions;
-    jDel.innerHTML = jobOptions;
+    let jOpts = "";
+    data.forEach(c => c.jobs.forEach(j => jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`));
+    jSel.innerHTML = dJSel.innerHTML = jOpts;
   }
 
-  function renderTable() {
-    const tbody = document.getElementById('tableBody');
-    let html = "";
-    data.forEach(c => {
-      c.jobs.forEach(j => {
-        j.staff.forEach(s => {
-          html += `<tr>
-            <td>${j.title}</td>
-            <td>${s.name}</td>
-            <td>RM${s.rev}</td>
-            <td><button class="btn-del-row" onclick="deleteCandidate(${c.id}, ${j.id}, ${s.id})">×</button></td>
-          </tr>`;
-        });
-      });
-    });
-    tbody.innerHTML = html;
+  function renderClientTables() {
+    const container = document.getElementById('clientTablesSection');
+    container.innerHTML = data.map(c => `
+      <div class="client-report-card">
+        <h2 class="client-title">${c.name}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Job Order</th>
+              <th>Headcount</th>
+              <th>Name Working</th>
+              <th>CVs (Mon-Fri)</th>
+              <th>Remarks</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${c.jobs.flatMap(j => j.candidates.length > 0 ? j.candidates.map(s => `
+              <tr>
+                <td>${j.title}</td>
+                <td>${j.hc}</td>
+                <td>${s.name}</td>
+                <td>${s.cvs}</td>
+                <td>${s.rem}</td>
+                <td><button class="btn-danger" style="padding:2px 5px" onclick="removeCandidate(${c.id},${j.id},${s.id})">Remove</button></td>
+              </tr>
+            `) : `<tr><td>${j.title}</td><td>${j.hc}</td><td colspan="4" style="color:#ccc">No candidates assigned</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `).join('');
   }
 
-  function renderChart() {
-    const ctx = document.getElementById('chart').getContext('2d');
-    const labels = data.map(c => c.name);
-    const revs = data.map(c => {
-      let total = 0;
-      c.jobs.forEach(j => j.staff.forEach(s => total += s.rev));
-      return total;
-    });
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'RM', data: revs, backgroundColor: '#1e293b' }] },
-      options: { plugins: { legend: { display: false } } }
-    });
+  function renderStagnantJobs() {
+    const list = document.getElementById('stagnantList');
+    let stagnant = [];
+    data.forEach(c => c.jobs.forEach(j => {
+      const totalCVs = j.candidates.reduce((sum, s) => sum + s.cvs, 0);
+      if (totalCVs < 1) stagnant.push(`${c.name} - <strong>${j.title}</strong>`);
+    }));
+    list.innerHTML = stagnant.length ? stagnant.map(item => `<p><span class="stagnant-tag">CRITICAL</span> ${item}</p>`).join('') : "<p>All roles have active submissions.</p>";
   }
 
   function renderMindMap() {
-    const svg = d3.select("#mindmap");
-    svg.selectAll("*").remove();
-    if (data.length === 0) return;
-
-    const width = document.getElementById('mindmap').clientWidth;
-    const height = 700;
-    const zoom = d3.zoom().on("zoom", (e) => g.attr("transform", e.transform));
-    svg.call(zoom);
-    const g = svg.append("g");
-
-    const treeData = { name: "ROOT", children: data.map(c => ({
+    const svg = d3.select("#mindmap"); svg.selectAll("*").remove();
+    if (!data.length) return;
+    const width = document.getElementById('mindmap').clientWidth, height = 600;
+    const g = svg.append("g").attr("transform", "translate(50,50)");
+    
+    const treeData = { name: "BH", children: data.map(c => ({
       name: c.name, type: "client", children: c.jobs.map(j => ({
-        name: j.title, type: "job", children: j.staff.map(s => ({
-          name: `${s.name} (RM${s.rev})`, type: "employee"
+        name: j.title, type: "job", children: j.candidates.map(s => ({
+          name: s.name, type: "staff", color: s.color
         }))
       }))
     }))};
 
     const root = d3.hierarchy(treeData);
-    const treeLayout = d3.tree().size([height - 100, width * 1.5]);
-    treeLayout(root);
+    d3.tree().size([height-100, width-300])(root);
 
     g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0))
       .enter().append("path").attr("class", "link")
@@ -249,17 +231,13 @@
       .enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
 
     node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em")
-      .text(d => d.data.name).each(function(d) {
-        const b = this.getBBox();
-        d.w = b.width + 24; d.h = b.height + 14;
-      });
+      .text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 20; d.h = 25; });
 
-    node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", d => -d.h/2)
-      .attr("width", d => d.w).attr("height", d => d.h).attr("rx", 8)
-      .attr("class", d => `${d.data.type}-box`);
+    node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", -12).attr("width", d => d.w).attr("height", 25).attr("rx", 5)
+      .style("fill", d => d.data.type === 'staff' ? d.data.color : (d.data.type === 'client' ? '#1e293b' : '#0ea5e9'));
   }
 
-  saveAndRefresh();
+  refreshUI();
 </script>
 </body>
 </html>
