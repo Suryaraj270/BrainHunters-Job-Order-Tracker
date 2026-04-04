@@ -8,88 +8,117 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     :root { --primary: #0f172a; --accent: #3b82f6; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 1500px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #1e293b; }
     
-    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    /* Navigation */
+    nav { background: var(--primary); padding: 15px 30px; display: flex; gap: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    nav button { width: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 8px 20px; color: white; cursor: pointer; border-radius: 6px; font-weight: 500; }
+    nav button.active { background: var(--accent); border-color: var(--accent); }
+
+    .page { display: none; padding: 30px; max-width: 1600px; margin: auto; }
+    .page.active { display: block; }
+
+    .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; }
-    h3 { margin-top: 0; font-size: 0.75rem; text-transform: uppercase; color: #64748b; margin-bottom: 12px; letter-spacing: 0.05em; }
     
-    input, select, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; box-sizing: border-box; }
-    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
-    button:hover { opacity: 0.9; }
+    input, select, button, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; box-sizing: border-box; }
+    button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; }
     .btn-danger { background: var(--danger); }
     
-    /* Client Tables Section */
-    .client-report-card { margin-top: 40px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-    .client-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; margin-bottom: 15px; padding-bottom: 10px; }
-    .client-title { color: var(--primary); margin: 0; font-size: 1.5rem; }
-    
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.85rem; }
-    th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
-    th { background: #f8fafc; font-weight: 600; color: #475569; }
+    /* Tables */
+    .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 1000px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+    th { background: #f8fafc; color: #475569; }
+    .day-col { width: 120px; background: #fdfdfd; font-style: italic; font-size: 0.75rem; }
 
-    .stagnant-section { background: #fff1f2; border: 1px solid #fecdd3; padding: 20px; border-radius: 12px; margin-top: 30px; }
-    .stagnant-tag { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-
-    #mindmap { width: 100%; height: 500px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; margin-top: 20px; }
-    .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
+    /* Summary Page Specifics */
+    .summary-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+    .stat-card { background: var(--primary); color: white; padding: 40px; border-radius: 16px; text-align: center; }
+    .stat-value { font-size: 3rem; font-weight: 800; color: var(--success); }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>🧠 BrainHunters Client & TA</h1>
+<nav>
+  <button id="nav-main" class="active" onclick="showPage('main')">Dashboard & Tracker</button>
+  <button id="nav-rev" onclick="showPage('rev')">Total Revenue Summary</button>
+</nav>
 
-  <div class="panel-grid">
-    <div class="card">
-      <h3>1. Client & Role Creation</h3>
-      <input id="newClient" placeholder="New Company Name">
-      <button onclick="addClient()">Register Client</button>
-      <hr style="margin:15px 0; border:0; border-top:1px solid #eee">
-      <select id="clientSelect"></select>
-      <input id="newJob" placeholder="Job Position (Role)">
-      <input id="headcount" type="number" placeholder="Head Count Required">
-      <input id="jobRevenue" type="number" placeholder="Total Revenue/Fee for Job (RM)">
-      <button onclick="addJob()">Add Job Order</button>
+<div id="page-main" class="page active">
+  <div class="container">
+    <div class="panel-grid">
+      <div class="card">
+        <h3>1. Client & Job Setup</h3>
+        <input id="newClient" placeholder="Client Name">
+        <button onclick="addClient()">Add Client</button>
+        <hr style="margin:15px 0; border:0; border-top:1px solid #eee">
+        <select id="clientSelect"></select>
+        <input id="newJob" placeholder="Job Role">
+        <input id="hc" type="number" placeholder="Headcount">
+        <input id="jobRev" type="number" placeholder="Fee (RM)">
+        <button onclick="addJob()">Assign Role</button>
+      </div>
+
+      <div class="card">
+        <h3>2. Candidate Assignment</h3>
+        <select id="jobSelect"></select>
+        <input id="staffName" placeholder="Candidate Name">
+        <button onclick="addCandidate()">Add Candidate to Job</button>
+      </div>
+
+      <div class="card">
+        <h3>3. System Management</h3>
+        <select id="delClientSelect"></select>
+        <button class="btn-danger" onclick="deleteClient()">Delete Client</button>
+        <select id="delJobSelect" style="margin-top:10px"></select>
+        <button class="btn-danger" onclick="deleteJob()">Delete Job Order</button>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>2. Candidate Submission</h3>
-      <select id="jobSelect"></select>
-      <input id="staffName" placeholder="Candidate Name">
-      <label style="font-size: 0.7rem; color: #64748b;">Submission Date:</label>
-      <input id="subDate" type="date">
-      <input id="remarks" placeholder="Status Remarks (e.g. Interviewing)">
-      <button onclick="addCandidate()">Submit Candidate</button>
-    </div>
-
-    <div class="card">
-      <h3>3. Management</h3>
-      <select id="delClientSelect"></select>
-      <button class="btn-danger" onclick="deleteClient()">Delete Client</button>
-      <select id="delJobSelect" style="margin-top:15px"></select>
-      <button class="btn-danger" onclick="deleteJob()">Delete Job Order</button>
-    </div>
+    <div id="clientTablesSection"></div>
   </div>
+</div>
 
-  <div id="mindmap-container">
-    <h3>Live Talent Pipeline Map</h3>
-    <svg id="mindmap"></svg>
-  </div>
-
-  <div id="clientTablesSection"></div>
-
-  <div class="stagnant-section">
-    <h2 style="color:#9f1239">⚠️ Low Submission Alert (Under 1 CV)</h2>
-    <div id="stagnantList"></div>
+<div id="page-rev" class="page">
+  <div class="container">
+    <div class="summary-grid">
+      <div class="stat-card">
+        <h2>Grand Total Revenue</h2>
+        <div id="totalRevVal" class="stat-value">RM 0</div>
+        <p>Accumulated from all active clients & jobs</p>
+      </div>
+      <div class="card">
+        <h3>Revenue Breakdown by Client</h3>
+        <canvas id="revChart"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-top:30px">
+      <h3>Financial Master List</h3>
+      <table id="revTable">
+        <thead>
+          <tr><th>Client Name</th><th>Total Jobs</th><th>Total Headcount</th><th>Total Revenue (RM)</th></tr>
+        </thead>
+        <tbody id="revTableBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
-  let data = JSON.parse(localStorage.getItem('brainhunters_v3')) || [];
+  let data = JSON.parse(localStorage.getItem('bh_v4_data')) || [];
+  let revChart;
 
-  // --- LOGIC FUNCTIONS ---
+  function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + pageId).classList.add('active');
+    document.getElementById('nav-' + (pageId === 'main' ? 'main' : 'rev')).classList.add('active');
+    if(pageId === 'rev') renderRevenuePage();
+  }
+
+  // --- DATA OPERATIONS ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
@@ -100,40 +129,28 @@
 
   function addJob() {
     const cId = parseInt(document.getElementById('clientSelect').value);
-    const title = document.getElementById('newJob').value.trim();
-    const hc = document.getElementById('headcount').value || 1;
-    const rev = parseFloat(document.getElementById('jobRevenue').value) || 0;
-    if (!cId || !title) return;
+    const title = document.getElementById('newJob').value;
+    const hc = document.getElementById('hc').value || 1;
+    const rev = parseFloat(document.getElementById('jobRev').value) || 0;
+    if(!cId || !title) return;
     data.find(c => c.id === cId).jobs.push({ id: Date.now(), title, hc, rev, candidates: [] });
     save();
-    document.getElementById('newJob').value = '';
-    document.getElementById('jobRevenue').value = '';
   }
 
   function addCandidate() {
     const ids = document.getElementById('jobSelect').value.split('|');
     const name = document.getElementById('staffName').value.trim();
-    const date = document.getElementById('subDate').value;
-    const rem = document.getElementById('remarks').value;
-    if (ids.length < 2 || !name || !date) return alert("Please provide Name and Date");
-    
+    if(ids.length < 2 || !name) return;
     data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1])
-        .candidates.push({ 
-          id: Date.now(), 
-          name, 
-          date, 
-          rem, 
-          color: d3.interpolateRainbow(Math.random()) 
-        });
+        .candidates.push({ id: Date.now(), name, mon: '', tue: '', wed: '', thu: '', fri: '' });
     save();
     document.getElementById('staffName').value = '';
-    document.getElementById('remarks').value = '';
   }
 
-  function removeCandidate(cId, jId, sId) {
-    const job = data.find(c => c.id == cId).jobs.find(j => j.id == jId);
-    job.candidates = job.candidates.filter(s => s.id !== sId);
-    save();
+  function updateRemark(cId, jId, sId, day, val) {
+    const s = data.find(c => c.id == cId).jobs.find(j => j.id == jId).candidates.find(s => s.id == sId);
+    s[day] = val;
+    localStorage.setItem('bh_v4_data', JSON.stringify(data));
   }
 
   function deleteClient() {
@@ -143,117 +160,83 @@
 
   function deleteJob() {
     const ids = document.getElementById('delJobSelect').value.split('|');
-    if(confirm("Delete Job?")) {
-      const c = data.find(c => c.id == ids[0]);
-      c.jobs = c.jobs.filter(j => j.id != ids[1]);
-      save();
-    }
+    const c = data.find(c => c.id == ids[0]);
+    c.jobs = c.jobs.filter(j => j.id != ids[1]);
+    save();
   }
 
   function save() {
-    localStorage.setItem('brainhunters_v3', JSON.stringify(data));
+    localStorage.setItem('bh_v4_data', JSON.stringify(data));
     refreshUI();
   }
 
+  // --- RENDERING ---
   function refreshUI() {
-    updateDropdowns();
-    renderClientTables();
-    renderStagnantJobs();
-    renderMindMap();
-  }
-
-  // --- UI RENDERING ---
-  function updateDropdowns() {
-    const cSel = document.getElementById('clientSelect'), dCSel = document.getElementById('delClientSelect');
-    const jSel = document.getElementById('jobSelect'), dJSel = document.getElementById('delJobSelect');
-
-    const opts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    cSel.innerHTML = dCSel.innerHTML = opts;
+    const cSels = [document.getElementById('clientSelect'), document.getElementById('delClientSelect')];
+    const jSels = [document.getElementById('jobSelect'), document.getElementById('delJobSelect')];
+    
+    const cOpts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    cSels.forEach(s => s.innerHTML = cOpts);
 
     let jOpts = "";
     data.forEach(c => c.jobs.forEach(j => jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`));
-    jSel.innerHTML = dJSel.innerHTML = jOpts;
+    jSels.forEach(s => s.innerHTML = jOpts);
+
+    renderClientTables();
   }
 
   function renderClientTables() {
     const container = document.getElementById('clientTablesSection');
-    container.innerHTML = data.map(c => {
-      let clientTotalRev = c.jobs.reduce((sum, j) => sum + j.rev, 0);
-      return `
-        <div class="client-report-card">
-          <div class="client-header">
-            <h2 class="client-title">${c.name}</h2>
-            <span style="font-weight:bold; color:var(--success)">Total Rev: RM ${clientTotalRev.toLocaleString()}</span>
-          </div>
-          <table>
-            <thead>
+    container.innerHTML = data.map(c => `
+      <div class="client-report-card">
+        <h2 style="margin:0 0 15px 0; color:var(--primary)">${c.name}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Job Order</th><th>HC</th><th>Revenue</th><th>Candidate</th>
+              <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${c.jobs.flatMap(j => j.candidates.length > 0 ? j.candidates.map(s => `
               <tr>
-                <th>Job Order (Position)</th>
-                <th>Revenue (RM)</th>
-                <th>Headcount</th>
-                <th>Candidate Name</th>
-                <th>Submission Date</th>
-                <th>Remarks</th>
-                <th>Action</th>
+                <td>${j.title}</td><td>${j.hc}</td><td>RM${j.rev}</td>
+                <td><strong>${s.name}</strong></td>
+                ${['mon','tue','wed','thu','fri'].map(day => `
+                  <td><input class="day-col" value="${s[day]}" onchange="updateRemark(${c.id},${j.id},${s.id},'${day}',this.value)" placeholder="..."></td>
+                `).join('')}
               </tr>
-            </thead>
-            <tbody>
-              ${c.jobs.flatMap(j => j.candidates.length > 0 ? j.candidates.map(s => `
-                <tr>
-                  <td>${j.title}</td>
-                  <td>RM ${j.rev.toLocaleString()}</td>
-                  <td>${j.hc}</td>
-                  <td><strong>${s.name}</strong></td>
-                  <td>${s.date}</td>
-                  <td>${s.rem}</td>
-                  <td><button class="btn-danger" style="padding:2px 8px; font-size:10px;" onclick="removeCandidate(${c.id},${j.id},${s.id})">Remove Candidate</button></td>
-                </tr>
-              `) : `<tr><td>${j.title}</td><td>RM ${j.rev.toLocaleString()}</td><td>${j.hc}</td><td colspan="4" style="color:#94a3b8; text-align:center;">No candidates submitted yet</td></tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }).join('');
+            `) : `<tr><td>${j.title}</td><td>${j.hc}</td><td>RM${j.rev}</td><td colspan="6" style="text-align:center;color:#94a3b8">No Candidates Assigned</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `).join('');
   }
 
-  function renderStagnantJobs() {
-    const list = document.getElementById('stagnantList');
-    let stagnant = [];
-    data.forEach(c => c.jobs.forEach(j => {
-      if (j.candidates.length < 1) stagnant.push(`${c.name} - <strong>${j.title}</strong>`);
-    }));
-    list.innerHTML = stagnant.length ? stagnant.map(item => `<p><span class="stagnant-tag">CRITICAL</span> ${item}</p>`).join('') : "<p>All roles have active candidate submissions.</p>";
-  }
+  function renderRevenuePage() {
+    let grandTotal = 0;
+    const tbody = document.getElementById('revTableBody');
+    const clientTotals = data.map(c => {
+      const cRev = c.jobs.reduce((sum, j) => sum + parseFloat(j.rev), 0);
+      const cHc = c.jobs.reduce((sum, j) => sum + parseInt(j.hc), 0);
+      grandTotal += cRev;
+      return { name: c.name, rev: cRev, hc: cHc, jobCount: c.jobs.length };
+    });
 
-  function renderMindMap() {
-    const svg = d3.select("#mindmap"); svg.selectAll("*").remove();
-    if (!data.length) return;
-    const width = document.getElementById('mindmap').clientWidth, height = 500;
-    const g = svg.append("g").attr("transform", "translate(50,50)");
-    
-    const treeData = { name: "BH", children: data.map(c => ({
-      name: c.name, type: "client", children: c.jobs.map(j => ({
-        name: `${j.title} (RM ${j.rev})`, type: "job", children: j.candidates.map(s => ({
-          name: s.name, type: "staff", color: s.color
-        }))
-      }))
-    }))};
+    document.getElementById('totalRevVal').innerText = "RM " + grandTotal.toLocaleString();
+    tbody.innerHTML = clientTotals.map(ct => `
+      <tr><td>${ct.name}</td><td>${ct.jobCount}</td><td>${ct.hc}</td><td>RM ${ct.rev.toLocaleString()}</td></tr>
+    `).join('');
 
-    const root = d3.hierarchy(treeData);
-    d3.tree().size([height-100, width-350])(root);
-
-    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0))
-      .enter().append("path").attr("class", "link")
-      .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
-
-    const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0))
-      .enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
-
-    node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em")
-      .style("fill", "#fff").text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 20; d.h = 25; });
-
-    node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", -12).attr("width", d => d.w).attr("height", 25).attr("rx", 5)
-      .style("fill", d => d.data.type === 'staff' ? d.data.color : (d.data.type === 'client' ? '#0f172a' : '#3b82f6'));
+    const ctx = document.getElementById('revChart').getContext('2d');
+    if(revChart) revChart.destroy();
+    revChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: clientTotals.map(ct => ct.name),
+        datasets: [{ data: clientTotals.map(ct => ct.rev), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }]
+      }
+    });
   }
 
   refreshUI();
