@@ -25,21 +25,19 @@
     button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; }
     .btn-danger { background: var(--danger); }
     
-    /* Date Range Styling */
     .date-range-container { display: flex; align-items: center; gap: 10px; margin-left: 20px; font-size: 0.8rem; font-weight: normal; color: #64748b; }
-    .date-range-container input { width: auto; padding: 5px; }
+    .date-range-container input { width: auto; padding: 5px; height: 30px; }
 
-    /* Tables */
-    .client-header-flex { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-    .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; }
+    .client-header-flex { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+    .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
     th { background: #f8fafc; }
 
     .day-container { display: flex; flex-direction: column; gap: 2px; }
-    .cv-input { width: 50px !important; text-align: center; color: var(--accent); font-weight: bold; }
+    .cv-input { width: 50px !important; text-align: center; color: var(--accent); font-weight: bold; border: 1px solid #ddd; }
     
-    .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; }
+    .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; border: 1px solid #cbd5e1; }
     #mindmap { width: 100%; height: 750px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
   </style>
@@ -114,7 +112,7 @@
 </div>
 
 <script>
-  let data = JSON.parse(localStorage.getItem('bh_v7_final')) || [];
+  let data = JSON.parse(localStorage.getItem('bh_v7_fixed')) || [];
   let revChart;
 
   function showPage(pageId) {
@@ -126,7 +124,6 @@
     if(pageId === 'rev') renderRevenuePage();
   }
 
-  // --- LOGIC ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
@@ -137,25 +134,38 @@
 
   function updateClientDates(cId, field, val) {
     const c = data.find(item => item.id == cId);
-    c[field] = val;
-    localStorage.setItem('bh_v7_final', JSON.stringify(data));
+    if(c) c[field] = val;
+    localStorage.setItem('bh_v7_fixed', JSON.stringify(data));
   }
 
   function addJob() {
-    const cId = parseInt(document.getElementById('clientSelect').value);
-    const title = document.getElementById('newJob').value;
+    const cIdSelect = document.getElementById('clientSelect').value;
+    if(!cIdSelect) return;
+    const cId = parseInt(cIdSelect);
+    const title = document.getElementById('newJob').value.trim();
     const hc = parseInt(document.getElementById('hc').value) || 1;
     const rev = parseFloat(document.getElementById('jobRev').value) || 0;
-    if(!cId || !title) return;
-    data.find(c => c.id === cId).jobs.push({ id: Date.now(), title, hc, rev, candidates: [] });
-    save();
+    if(!title) return;
+    const client = data.find(c => c.id === cId);
+    if(client) {
+        client.jobs.push({ id: Date.now(), title, hc, rev, candidates: [] });
+        save();
+        document.getElementById('newJob').value = '';
+        document.getElementById('hc').value = '';
+        document.getElementById('jobRev').value = '';
+    }
   }
 
   function addCandidate() {
-    const ids = document.getElementById('jobSelect').value.split('|');
+    const jobVal = document.getElementById('jobSelect').value;
+    if(!jobVal) return;
+    const ids = jobVal.split('|');
     const name = document.getElementById('staffName').value.trim();
     if(ids.length < 2 || !name) return;
-    const job = data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1]);
+    
+    const client = data.find(c => c.id == ids[0]);
+    const job = client.jobs.find(j => j.id == ids[1]);
+    
     if (job.candidates.length === 0) {
         job.candidates.push({ 
           id: Date.now(), names: [name], color: d3.interpolateRainbow(Math.random()),
@@ -169,7 +179,9 @@
   }
 
   function deleteTA() {
-    const ids = document.getElementById('delTaSelect').value.split('|');
+    const taVal = document.getElementById('delTaSelect').value;
+    if(!taVal) return;
+    const ids = taVal.split('|');
     if(ids.length < 3) return;
     const job = data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1]);
     job.candidates[0].names = job.candidates[0].names.filter(n => n !== ids[2]);
@@ -177,13 +189,17 @@
   }
 
   function updateDay(cId, jId, sId, day, type, val) {
-    const s = data.find(c => c.id == cId).jobs.find(j => j.id == jId).candidates.find(s => s.id == sId);
-    s[day][type] = val;
-    localStorage.setItem('bh_v7_final', JSON.stringify(data));
+    const client = data.find(c => c.id == cId);
+    const job = client.jobs.find(j => j.id == jId);
+    const s = job.candidates.find(item => item.id == sId);
+    if(s) {
+        s[day][type] = (type === 'cv') ? parseInt(val) || 0 : val;
+        localStorage.setItem('bh_v7_fixed', JSON.stringify(data));
+    }
   }
 
   function save() {
-    localStorage.setItem('bh_v7_final', JSON.stringify(data));
+    localStorage.setItem('bh_v7_fixed', JSON.stringify(data));
     refreshUI();
   }
 
@@ -194,11 +210,12 @@
   }
 
   function updateDropdowns() {
-    const cOpts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const cOpts = data.length > 0 ? data.map(c => `<option value="${c.id}">${c.name}</option>`).join('') : '<option value="">-- No Clients --</option>';
     document.getElementById('clientSelect').innerHTML = document.getElementById('delClientSelect').innerHTML = cOpts;
+    
     let jOpts = "";
     data.forEach(c => c.jobs.forEach(j => jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`));
-    document.getElementById('jobSelect').innerHTML = document.getElementById('delJobSelect').innerHTML = jOpts;
+    document.getElementById('jobSelect').innerHTML = document.getElementById('delJobSelect').innerHTML = jOpts || '<option value="">-- No Jobs --</option>';
   }
 
   function updateManagementDropdowns() {
@@ -206,7 +223,8 @@
     const taSelect = document.getElementById('delTaSelect');
     taSelect.innerHTML = "";
     if(jIdFull.length < 2) return;
-    const job = data.find(c => c.id == jIdFull[0]).jobs.find(j => j.id == jIdFull[1]);
+    const client = data.find(c => c.id == jIdFull[0]);
+    const job = client ? client.jobs.find(j => j.id == jIdFull[1]) : null;
     if(job && job.candidates.length > 0) {
         job.candidates[0].names.forEach(n => {
             taSelect.innerHTML += `<option value="${jIdFull[0]}|${jIdFull[1]}|${n}">${n}</option>`;
@@ -222,8 +240,8 @@
             <div style="display:flex; align-items:center;">
                 <h2 style="margin:0;">${c.name}</h2>
                 <div class="date-range-container">
-                    From: <input type="date" value="${c.fromDate}" onchange="updateClientDates(${c.id}, 'fromDate', this.value)">
-                    To: <input type="date" value="${c.toDate}" onchange="updateClientDates(${c.id}, 'toDate', this.value)">
+                    From: <input type="date" value="${c.fromDate || ''}" onchange="updateClientDates(${c.id}, 'fromDate', this.value)">
+                    To: <input type="date" value="${c.toDate || ''}" onchange="updateClientDates(${c.id}, 'toDate', this.value)">
                 </div>
             </div>
         </div>
@@ -240,8 +258,8 @@
                 <td>${s ? s.names.map(n => `<span class="ta-tag">${n}</span>`).join('') : '--'}</td>
                 ${['mon','tue','wed','thu','fri'].map(day => `
                   <td><div class="day-container">
-                    <input type="number" class="cv-input" value="${s ? s[day].cv : 0}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','cv',this.value)">
-                    <input style="font-size:10px" value="${s ? s[day].rem : ''}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','rem',this.value)" placeholder="..">
+                    <input type="number" class="cv-input" value="${s ? s[day].cv : 0}" onchange="updateDay(${c.id},${j.id},${s ? s.id : 0},'${day}','cv',this.value)">
+                    <input style="font-size:10px" value="${s ? s[day].rem : ''}" onchange="updateDay(${c.id},${j.id},${s ? s.id : 0},'${day}','rem',this.value)" placeholder="..">
                   </div></td>`).join('')}
               </tr>`;
             }).join('')}
@@ -268,21 +286,22 @@
     document.getElementById('map-alert').style.display = hasWarning ? 'block' : 'none';
 
     const root = d3.hierarchy(treeData);
-    d3.tree().size([height-100, width-250])(root);
-    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0)).enter().append("path").attr("class", "link").attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+    const treeLayout = d3.tree().size([height-100, width-250]);
+    treeLayout(root);
+
+    g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0)).enter().append("path").attr("class", "link")
+      .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+
     const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0)).enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
     
     node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em").style("fill", "#fff").text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 20; });
     
     node.insert("rect", "text").attr("x", d => -d.w/2).attr("y", -12).attr("width", d => d.w).attr("height", 24).attr("rx", 4)
-      .style("fill", d => d.data.alert ? var(--danger) : (d.data.type === 's' ? d.data.color : (d.data.type === 'c' ? '#0f172a' : '#3b82f6')));
-      
-    // Simplified fill logic fix for the alert:
-    node.select("rect").style("fill", d => {
-        if (d.data.alert) return "#ef4444"; // Red alert for >3 TAs
+      .style("fill", d => {
+        if (d.data.alert) return "#ef4444"; 
         if (d.data.type === 's') return d.data.color;
         return d.data.type === 'c' ? '#0f172a' : '#3b82f6';
-    });
+      });
   }
 
   function renderRevenuePage() {
@@ -299,14 +318,19 @@
 
   function deleteClient() {
     const id = document.getElementById('delClientSelect').value;
+    if(!id) return;
     if(confirm("Delete Client?")) { data = data.filter(c => c.id != id); save(); }
   }
 
   function deleteJob() {
-    const ids = document.getElementById('delJobSelect').value.split('|');
-    const c = data.find(c => c.id == ids[0]);
-    c.jobs = c.jobs.filter(j => j.id != ids[1]);
-    save();
+    const val = document.getElementById('delJobSelect').value;
+    if(!val) return;
+    const ids = val.split('|');
+    if(confirm("Delete Job?")) {
+      const c = data.find(c => c.id == ids[0]);
+      if(c) c.jobs = c.jobs.filter(j => j.id != ids[1]);
+      save();
+    }
   }
 
   refreshUI();
