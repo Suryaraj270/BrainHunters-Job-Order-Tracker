@@ -30,6 +30,10 @@
     .remark-input { font-size: 0.75rem !important; }
 
     .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; overflow-x: auto; }
+    .table-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .date-filters { display: flex; gap: 10px; align-items: center; width: auto; }
+    .date-filters input { width: 150px; margin: 0; }
+
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
     th { background: #f8fafc; color: #475569; }
@@ -41,6 +45,7 @@
     #mindmap { width: 100%; height: 750px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
     .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; }
+    .map-warning { color: var(--danger); font-weight: bold; margin-bottom: 10px; display: none; }
   </style>
 </head>
 <body>
@@ -79,6 +84,9 @@
         <button class="btn-danger" onclick="deleteClient()">Delete Client</button>
         <select id="delJobSelect" style="margin-top:10px"></select>
         <button class="btn-danger" onclick="deleteJob()">Delete Job Order</button>
+        <hr style="margin:10px 0; border:0; border-top:1px solid #eee">
+        <select id="delTASelect"></select>
+        <button class="btn-danger" onclick="removeTA()">Remove TA Name</button>
       </div>
     </div>
 
@@ -94,6 +102,7 @@
 <div id="page-map" class="page">
   <div class="container">
     <h2>Talent Pipeline Mind Map</h2>
+    <div id="map-alert" class="map-warning">⚠️ Note: Some Job Orders have > 3 TAs assigned.</div>
     <svg id="mindmap"></svg>
   </div>
 </div>
@@ -151,7 +160,6 @@
     
     const job = data.find(c => c.id == ids[0]).jobs.find(j => j.id == ids[1]);
     
-    // Check if we already have a record for this job to append names
     if (job.candidates.length === 0) {
         job.candidates.push({ 
           id: Date.now(), 
@@ -160,13 +168,24 @@
           mon: {cv:0, rem:''}, tue: {cv:0, rem:''}, wed: {cv:0, rem:''}, thu: {cv:0, rem:''}, fri: {cv:0, rem:''} 
         });
     } else {
-        // Add name to existing list if not already there
         if(!job.candidates[0].names.includes(name)) {
             job.candidates[0].names.push(name);
         }
     }
     save();
     document.getElementById('staffName').value = '';
+  }
+
+  function removeTA() {
+    const val = document.getElementById('delTASelect').value;
+    if(!val) return;
+    const [cId, jId, taName] = val.split('|');
+    const job = data.find(c => c.id == cId).jobs.find(j => j.id == jId);
+    if(job && job.candidates[0]) {
+        job.candidates[0].names = job.candidates[0].names.filter(n => n !== taName);
+        if(job.candidates[0].names.length === 0) job.candidates = [];
+        save();
+    }
   }
 
   function updateDay(cId, jId, sId, day, type, val) {
@@ -184,9 +203,20 @@
   function refreshUI() {
     const cOpts = data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('clientSelect').innerHTML = document.getElementById('delClientSelect').innerHTML = cOpts;
+    
     let jOpts = "";
-    data.forEach(c => c.jobs.forEach(j => jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`));
+    let taOpts = "";
+    data.forEach(c => c.jobs.forEach(j => {
+        jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`;
+        if(j.candidates.length > 0) {
+            j.candidates[0].names.forEach(name => {
+                taOpts += `<option value="${c.id}|${j.id}|${name}">${c.name} > ${j.title} (${name})</option>`;
+            });
+        }
+    }));
     document.getElementById('jobSelect').innerHTML = document.getElementById('delJobSelect').innerHTML = jOpts;
+    document.getElementById('delTASelect').innerHTML = taOpts;
+    
     renderClientTables();
     renderStagnantJobs();
   }
@@ -195,7 +225,13 @@
     const container = document.getElementById('clientTablesSection');
     container.innerHTML = data.map(c => `
       <div class="client-report-card">
-        <h3>${c.name}</h3>
+        <div class="table-header-flex">
+            <h3>${c.name}</h3>
+            <div class="date-filters">
+                <label>From:</label><input type="date">
+                <label>To:</label><input type="date">
+            </div>
+        </div>
         <table>
           <thead>
             <tr>
@@ -206,7 +242,7 @@
           <tbody>
             ${c.jobs.map(j => {
               const totalJobRev = j.rev * j.hc;
-              const s = j.candidates[0]; // Logic: one row per job order containing all names
+              const s = j.candidates[0];
               return s ? `
                 <tr>
                   <td>${j.title}</td><td>${j.hc}</td><td>RM ${totalJobRev.toLocaleString()}</td>
@@ -244,6 +280,18 @@
     const width = document.getElementById('mindmap').clientWidth, height = 750;
     const g = svg.append("g").attr("transform", "translate(40,40)");
     
+    let overlimit = false;
+    data.forEach(c => c.jobs.forEach(j => {
+        if(j.candidates.length > 0 && j.candidates[0].names.length > 3) overlimit = true;
+    }));
+
+    if(overlimit) {
+        document.getElementById('map-alert').style.display = 'block';
+        alert("Alert: One or more Job Orders have more than 3 TAs assigned.");
+    } else {
+        document.getElementById('map-alert').style.display = 'none';
+    }
+
     const treeData = { name: "BH", children: data.map(c => ({
       name: c.name, type: 'c', children: c.jobs.map(j => ({
         name: j.title, type: 'j', children: j.candidates.length > 0 ? j.candidates[0].names.map(n => ({ 
