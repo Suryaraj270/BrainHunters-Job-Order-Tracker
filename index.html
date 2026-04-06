@@ -27,31 +27,24 @@
     
     .day-container { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
     .cv-input { width: 50px !important; font-weight: bold; color: var(--accent); text-align: center; }
-    .remark-input { font-size: 0.75rem !important; }
 
     .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; overflow-x: auto; }
     .table-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .date-filters { display: flex; gap: 10px; align-items: center; width: auto; }
-    .date-filters input { width: 150px; margin: 0; }
-
+    
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
     th { background: #f8fafc; color: #475569; }
-
-    .alert-box { background: #fff1f2; border: 1px solid #fecdd3; padding: 20px; border-radius: 12px; margin-top: 20px; }
-    .stagnant-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #ffe4e6; }
-    .badge-red { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
 
     #map-wrapper { width: 100%; overflow: auto; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
     #mindmap { min-width: 1000px; display: block; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
     .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; }
-    .map-warning { color: var(--danger); font-weight: bold; margin-bottom: 10px; display: none; }
     
-    /* New Interview Styles */
-    .progress-pill { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .target-tracker { margin-top: 40px; padding: 25px; background: #f1f5f9; border-radius: 12px; border-left: 5px solid var(--accent); }
+    .target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
     .rev-achieved { color: var(--success); font-weight: bold; }
     .rev-potential { color: var(--warning); font-weight: bold; }
+    .balance-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
   </style>
 </head>
 <body>
@@ -77,14 +70,12 @@
         <input id="jobRev" type="number" placeholder="Fee per Headcount (RM)">
         <button onclick="addJob()">Assign Role</button>
       </div>
-
       <div class="card">
         <h3>2. TA Assignment</h3>
         <select id="jobSelect"></select>
-        <input id="staffName" placeholder="TA Name (Add one or more)">
+        <input id="staffName" placeholder="TA Name">
         <button onclick="addCandidate()">Add TA to Job</button>
       </div>
-
       <div class="card">
         <h3>3. Management</h3>
         <select id="delClientSelect"></select>
@@ -97,17 +88,13 @@
       </div>
     </div>
     <div id="clientTablesSection"></div>
-    <div class="alert-box">
-      <h3 style="color:var(--danger)">⚠️ Stagnant Roles (Below 1 CV Total)</h3>
-      <div id="stagnantList"></div>
-    </div>
   </div>
 </div>
 
 <div id="page-map" class="page">
   <div class="container">
     <h2>Talent Pipeline Mind Map</h2>
-    <div id="map-alert" class="map-warning">⚠️ Note: Some Job Orders have > 3 TAs assigned.</div>
+    <div id="map-alert" style="display:none; color:var(--danger); font-weight:bold; margin-bottom:10px">⚠️ Note: Job Order has > 3 TAs.</div>
     <div id="map-wrapper"><svg id="mindmap"></svg></div>
   </div>
 </div>
@@ -116,6 +103,20 @@
     <div class="container">
       <h2>Interview Breakdown & Closure Status</h2>
       <div id="interviewTableSection"></div>
+      
+      <div class="target-tracker">
+          <h3>💰 Revenue Target Tracker (RM 140,000)</h3>
+          <div class="target-grid">
+              <div class="balance-box">
+                  <small>Total Achieved Revenue</small>
+                  <h2 id="currentAchieved" class="rev-achieved">RM 0</h2>
+              </div>
+              <div class="balance-box">
+                  <small>Target Balance Needed</small>
+                  <h2 id="targetBalance" style="color:var(--danger)">RM 140,000</h2>
+              </div>
+          </div>
+      </div>
     </div>
 </div>
 
@@ -125,7 +126,6 @@
       <div class="card" style="background:var(--primary); color:white; text-align:center">
         <h2>Grand Total Revenue</h2>
         <h1 id="totalRevVal" style="font-size:3rem; color:var(--success)">RM 0</h1>
-        <p style="font-size: 0.8rem; opacity: 0.7;">(Fee × Headcount)</p>
       </div>
       <div class="card"><canvas id="revChart"></canvas></div>
     </div>
@@ -146,7 +146,6 @@
     if(pageId === 'interview') renderInterviewPage();
   }
 
-  // --- CORE DATA FUNCTIONS ---
   function addClient() {
     const name = document.getElementById('newClient').value.trim();
     if (!name) return;
@@ -162,8 +161,8 @@
     const rev = parseFloat(document.getElementById('jobRev').value) || 0;
     if(!cId || !title) return;
     data.find(c => c.id === cId).jobs.push({ 
-        id: Date.now(), title, hc, rev, 
-        hcClosed: 0, interviewProgress: '', interviewDates: '', candidates: [] 
+        id: Date.now(), title, hc, rev, hcClosed: 0, closurePercent: 0, 
+        interviewProgress: '', interviewDates: '', interviewHC: 0, candidates: [] 
     });
     save();
   }
@@ -182,7 +181,6 @@
         job.candidates[0].names.push(name);
     }
     save();
-    document.getElementById('staffName').value = '';
   }
 
   function updateInterviewData(cId, jId, field, val) {
@@ -190,25 +188,6 @@
     job[field] = val;
     localStorage.setItem('bh_v6_final', JSON.stringify(data));
     renderInterviewPage();
-  }
-
-  function removeTA() {
-    const val = document.getElementById('delTASelect').value;
-    if(!val) return;
-    const [cId, jId, taName] = val.split('|');
-    const job = data.find(c => c.id == cId).jobs.find(j => j.id == jId);
-    if(job && job.candidates[0]) {
-        job.candidates[0].names = job.candidates[0].names.filter(n => n !== taName);
-        if(job.candidates[0].names.length === 0) job.candidates = [];
-        save();
-    }
-  }
-
-  function updateDay(cId, jId, sId, day, type, val) {
-    const s = data.find(c => c.id == cId).jobs.find(j => j.id == jId).candidates.find(s => s.id == sId);
-    s[day][type] = val;
-    localStorage.setItem('bh_v6_final', JSON.stringify(data));
-    renderStagnantJobs();
   }
 
   function save() {
@@ -222,35 +201,22 @@
     let jOpts = "", taOpts = "";
     data.forEach(c => c.jobs.forEach(j => {
         jOpts += `<option value="${c.id}|${j.id}">${c.name} > ${j.title}</option>`;
-        if(j.candidates.length > 0) {
-            j.candidates[0].names.forEach(name => {
-                taOpts += `<option value="${c.id}|${j.id}|${name}">${c.name} > ${j.title} (${name})</option>`;
-            });
-        }
+        if(j.candidates.length > 0) j.candidates[0].names.forEach(name => taOpts += `<option value="${c.id}|${j.id}|${name}">${c.name} > ${j.title} (${name})</option>`);
     }));
     document.getElementById('jobSelect').innerHTML = document.getElementById('delJobSelect').innerHTML = jOpts;
     document.getElementById('delTASelect').innerHTML = taOpts;
     renderClientTables();
-    renderStagnantJobs();
   }
-
-  // --- RENDER FUNCTIONS ---
 
   function renderClientTables() {
     const container = document.getElementById('clientTablesSection');
     container.innerHTML = data.map(c => `
       <div class="client-report-card">
-        <div class="table-header-flex">
-            <h3>${c.name}</h3>
-            <div class="date-filters">
-                <label>From:</label><input type="date">
-                <label>To:</label><input type="date">
-            </div>
-        </div>
+        <h3>${c.name}</h3>
         <table>
           <thead>
             <tr>
-              <th>Job Order</th><th>HC Req</th><th>Potential Revenue</th><th>TA Names</th>
+              <th>Job Order</th><th>HC Req</th><th>Potential Rev</th><th>TA Names</th>
               ${['Mon','Tue','Wed','Thu','Fri'].map(d => `<th>${d}</th>`).join('')}
             </tr>
           </thead>
@@ -260,17 +226,16 @@
               return s ? `
                 <tr>
                   <td>${j.title}</td><td>${j.hc}</td><td>RM ${(j.hc * j.rev).toLocaleString()}</td>
-                  <td>${s.names.map(n => `<span class="ta-tag">${n}</span>`).join('')}</td>
+                  <td>${s.names.join(', ')}</td>
                   ${['mon','tue','wed','thu','fri'].map(day => `
                     <td>
                       <div class="day-container">
                         <input type="number" class="cv-input" value="${s[day].cv}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','cv',this.value)">
-                        <input class="remark-input" value="${s[day].rem}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','rem',this.value)" placeholder="Rem">
+                        <input style="font-size:10px" value="${s[day].rem}" onchange="updateDay(${c.id},${j.id},${s.id},'${day}','rem',this.value)" placeholder="Rem">
                       </div>
                     </td>
                   `).join('')}
-                </tr>
-              ` : `<tr><td>${j.title}</td><td>${j.hc}</td><td colspan="7" style="text-align:center">Assign TA to track</td></tr>`;
+                </tr>` : '';
             }).join('')}
           </tbody>
         </table>
@@ -280,6 +245,8 @@
 
   function renderInterviewPage() {
     const container = document.getElementById('interviewTableSection');
+    let totalAchievedGlobal = 0;
+
     container.innerHTML = data.map(c => `
       <div class="client-report-card">
         <h3>${c.name} - Closure Breakdown</h3>
@@ -287,63 +254,63 @@
           <thead>
             <tr>
               <th>Job Order</th>
+              <th>TA Names</th>
+              <th>CV Submitted</th>
+              <th>HC Interview</th>
               <th>HC Closed</th>
               <th>HC Left</th>
               <th>Closure %</th>
               <th>Achieved Rev</th>
-              <th>Potential Rev</th>
               <th>Interview Progress</th>
-              <th>Interview Dates</th>
             </tr>
           </thead>
           <tbody>
             ${c.jobs.map(j => {
+                const s = j.candidates[0] || { names: [], mon: {cv:0}, tue: {cv:0}, wed: {cv:0}, thu: {cv:0}, fri: {cv:0} };
+                const cvTotal = (parseInt(s.mon.cv)||0) + (parseInt(s.tue.cv)||0) + (parseInt(s.wed.cv)||0) + (parseInt(s.thu.cv)||0) + (parseInt(s.fri.cv)||0);
                 const closed = parseInt(j.hcClosed || 0);
-                const left = j.hc - closed;
-                const percent = ((closed / j.hc) * 100).toFixed(0);
                 const achieved = closed * j.rev;
-                const potential = left * j.rev;
+                totalAchievedGlobal += achieved;
                 return `
                 <tr>
                   <td><b>${j.title}</b></td>
+                  <td>${s.names.join(', ')}</td>
+                  <td><b>${cvTotal}</b></td>
+                  <td><input type="number" value="${j.interviewHC || 0}" onchange="updateInterviewData(${c.id},${j.id},'interviewHC',this.value)" style="width:60px"></td>
                   <td><input type="number" value="${closed}" onchange="updateInterviewData(${c.id},${j.id},'hcClosed',this.value)" style="width:60px"></td>
-                  <td><span class="progress-pill">${left}</span></td>
-                  <td>${percent}%</td>
+                  <td>${j.hc - closed}</td>
+                  <td><input type="number" value="${j.closurePercent || 0}" onchange="updateInterviewData(${c.id},${j.id},'closurePercent',this.value)" style="width:60px">%</td>
                   <td class="rev-achieved">RM ${achieved.toLocaleString()}</td>
-                  <td class="rev-potential">RM ${potential.toLocaleString()}</td>
-                  <td><input type="text" placeholder="Status..." value="${j.interviewProgress || ''}" onchange="updateInterviewData(${c.id},${j.id},'interviewProgress',this.value)"></td>
-                  <td><input type="text" placeholder="Dates..." value="${j.interviewDates || ''}" onchange="updateInterviewData(${c.id},${j.id},'interviewDates',this.value)"></td>
+                  <td><input type="text" value="${j.interviewProgress || ''}" onchange="updateInterviewData(${c.id},${j.id},'interviewProgress',this.value)"></td>
                 </tr>`;
             }).join('')}
           </tbody>
         </table>
       </div>
     `).join('');
+
+    const target = 140000;
+    document.getElementById('currentAchieved').innerText = `RM ${totalAchievedGlobal.toLocaleString()}`;
+    const balance = target - totalAchievedGlobal;
+    document.getElementById('targetBalance').innerText = balance > 0 ? `RM ${balance.toLocaleString()}` : "Target Achieved! 🎉";
   }
 
-  function renderStagnantJobs() {
-    const list = document.getElementById('stagnantList');
-    let stagnant = [];
-    data.forEach(c => c.jobs.forEach(j => {
-      let total = 0;
-      j.candidates.forEach(s => { ['mon','tue','wed','thu','fri'].forEach(d => total += parseInt(s[d].cv || 0)); });
-      if(total < 1) stagnant.push(`${c.name} - ${j.title}`);
-    }));
-    list.innerHTML = stagnant.map(i => `<div class="stagnant-item"><span class="badge-red">0 CV</span> ${i}</div>`).join('') || "All roles active.";
+  function updateDay(cId, jId, sId, day, type, val) {
+    const s = data.find(c => c.id == cId).jobs.find(j => j.id == jId).candidates.find(s => s.id == sId);
+    s[day][type] = val;
+    localStorage.setItem('bh_v6_final', JSON.stringify(data));
   }
 
   function renderMindMap() {
     const svg = d3.select("#mindmap"); svg.selectAll("*").remove();
-    let totalNodes = 0, overlimit = false;
-    data.forEach(c => { totalNodes++; c.jobs.forEach(j => { totalNodes++; if(j.candidates.length > 0) { totalNodes += j.candidates[0].names.length; if(j.candidates[0].names.length > 3) overlimit = true; } }); });
-    document.getElementById('map-alert').style.display = overlimit ? 'block' : 'none';
+    let totalNodes = 0;
+    data.forEach(c => { totalNodes++; c.jobs.forEach(j => { totalNodes++; if(j.candidates.length > 0) totalNodes += j.candidates[0].names.length; }); });
     const dynamicHeight = Math.max(600, totalNodes * 45);
-    const width = 1200;
-    svg.attr("height", dynamicHeight).attr("width", width);
+    svg.attr("height", dynamicHeight).attr("width", 1200);
     const g = svg.append("g").attr("transform", "translate(120,40)");
     const treeData = { name: "BH", children: data.map(c => ({ name: c.name, type: 'c', children: c.jobs.map(j => ({ name: j.title, type: 'j', children: j.candidates.length > 0 ? j.candidates[0].names.map(n => ({ name: n, type: 's', color: j.candidates[0].color })) : [] })) })) };
     const root = d3.hierarchy(treeData);
-    d3.tree().size([dynamicHeight - 100, width - 400]).separation((a, b) => (a.parent == b.parent ? 1.5 : 2.5))(root);
+    d3.tree().size([dynamicHeight - 100, 800])(root);
     g.selectAll(".link").data(root.links().filter(d => d.source.depth > 0)).enter().append("path").attr("class", "link").attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
     const node = g.selectAll(".node").data(root.descendants().filter(d => d.depth > 0)).enter().append("g").attr("transform", d => `translate(${d.y},${d.x})`);
     node.append("text").attr("text-anchor", "middle").attr("dy", "0.35em").style("fill", "#fff").style("font-size", "11px").text(d => d.data.name).each(function(d) { d.w = this.getBBox().width + 25; });
@@ -359,7 +326,7 @@
     document.getElementById('totalRevVal').innerText = "RM " + total.toLocaleString();
     const ctx = document.getElementById('revChart').getContext('2d');
     if(revChart) revChart.destroy();
-    revChart = new Chart(ctx, { type: 'bar', data: { labels: clientData.map(d=>d.n), datasets: [{ label: 'Total Potential Revenue', data: clientData.map(d=>d.v), backgroundColor: '#3b82f6' }] } });
+    revChart = new Chart(ctx, { type: 'bar', data: { labels: clientData.map(d=>d.n), datasets: [{ label: 'Potential Revenue', data: clientData.map(d=>d.v), backgroundColor: '#3b82f6' }] } });
   }
 
   function deleteClient() {
@@ -369,8 +336,17 @@
 
   function deleteJob() {
     const ids = document.getElementById('delJobSelect').value.split('|');
-    const c = data.find(c => c.id == ids[0]);
-    c.jobs = c.jobs.filter(j => j.id != ids[1]);
+    data.find(c => c.id == ids[0]).jobs = data.find(c => c.id == ids[0]).jobs.filter(j => j.id != ids[1]);
+    save();
+  }
+
+  function removeTA() {
+    const val = document.getElementById('delTASelect').value;
+    if(!val) return;
+    const [cId, jId, taName] = val.split('|');
+    const job = data.find(c => c.id == cId).jobs.find(j => j.id == jId);
+    job.candidates[0].names = job.candidates[0].names.filter(n => n !== taName);
+    if(job.candidates[0].names.length === 0) job.candidates = [];
     save();
   }
 
