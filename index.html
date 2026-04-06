@@ -29,7 +29,6 @@
     .cv-input { width: 50px !important; font-weight: bold; color: var(--accent); text-align: center; }
 
     .client-report-card { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white; overflow-x: auto; }
-    .table-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
@@ -38,12 +37,10 @@
     #map-wrapper { width: 100%; overflow: auto; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
     #mindmap { min-width: 1000px; display: block; }
     .link { fill: none; stroke: #cbd5e1; stroke-width: 2px; }
-    .ta-tag { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; font-size: 0.7rem; }
     
     .target-tracker { margin-top: 40px; padding: 25px; background: #f1f5f9; border-radius: 12px; border-left: 5px solid var(--accent); }
     .target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
     .rev-achieved { color: var(--success); font-weight: bold; }
-    .rev-potential { color: var(--warning); font-weight: bold; }
     .balance-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
   </style>
 </head>
@@ -94,25 +91,24 @@
 <div id="page-map" class="page">
   <div class="container">
     <h2>Talent Pipeline Mind Map</h2>
-    <div id="map-alert" style="display:none; color:var(--danger); font-weight:bold; margin-bottom:10px">⚠️ Note: Job Order has > 3 TAs.</div>
     <div id="map-wrapper"><svg id="mindmap"></svg></div>
   </div>
 </div>
 
 <div id="page-interview" class="page">
     <div class="container">
-      <h2>Interview Breakdown & Closure Status</h2>
+      <h2>Interview Breakdown & Invoice Tracking</h2>
       <div id="interviewTableSection"></div>
       
       <div class="target-tracker">
           <h3>💰 Revenue Target Tracker (RM 140,000)</h3>
           <div class="target-grid">
               <div class="balance-box">
-                  <small>Total Achieved Revenue</small>
+                  <small>Total Achieved Revenue (From Closures)</small>
                   <h2 id="currentAchieved" class="rev-achieved">RM 0</h2>
               </div>
               <div class="balance-box">
-                  <small>Target Balance Needed</small>
+                  <small>Balance to Achieve Target</small>
                   <h2 id="targetBalance" style="color:var(--danger)">RM 140,000</h2>
               </div>
           </div>
@@ -161,8 +157,9 @@
     const rev = parseFloat(document.getElementById('jobRev').value) || 0;
     if(!cId || !title) return;
     data.find(c => c.id === cId).jobs.push({ 
-        id: Date.now(), title, hc, rev, hcClosed: 0, closurePercent: 0, 
-        interviewProgress: '', interviewDates: '', interviewHC: 0, candidates: [] 
+        id: Date.now(), title, hc, rev, 
+        hcInterview: 0, hcOffer: 0, hcClosure: 0, 
+        invoiceRaised: 'No', interviewRemarks: '', candidates: [] 
     });
     save();
   }
@@ -249,39 +246,41 @@
 
     container.innerHTML = data.map(c => `
       <div class="client-report-card">
-        <h3>${c.name} - Closure Breakdown</h3>
+        <h3>${c.name} - Interview Breakdown</h3>
         <table>
           <thead>
             <tr>
               <th>Job Order</th>
-              <th>TA Names</th>
+              <th>TA Name</th>
               <th>CV Submitted</th>
               <th>HC Interview</th>
-              <th>HC Closed</th>
-              <th>HC Left</th>
-              <th>Closure %</th>
-              <th>Achieved Rev</th>
-              <th>Interview Progress</th>
+              <th>HC Offer</th>
+              <th>HC Closure</th>
+              <th>Invoice Raised</th>
+              <th>Remarks</th>
             </tr>
           </thead>
           <tbody>
             ${c.jobs.map(j => {
                 const s = j.candidates[0] || { names: [], mon: {cv:0}, tue: {cv:0}, wed: {cv:0}, thu: {cv:0}, fri: {cv:0} };
                 const cvTotal = (parseInt(s.mon.cv)||0) + (parseInt(s.tue.cv)||0) + (parseInt(s.wed.cv)||0) + (parseInt(s.thu.cv)||0) + (parseInt(s.fri.cv)||0);
-                const closed = parseInt(j.hcClosed || 0);
-                const achieved = closed * j.rev;
-                totalAchievedGlobal += achieved;
+                const closed = parseInt(j.hcClosure || 0);
+                totalAchievedGlobal += (closed * j.rev);
                 return `
                 <tr>
                   <td><b>${j.title}</b></td>
                   <td>${s.names.join(', ')}</td>
                   <td><b>${cvTotal}</b></td>
-                  <td><input type="number" value="${j.interviewHC || 0}" onchange="updateInterviewData(${c.id},${j.id},'interviewHC',this.value)" style="width:60px"></td>
-                  <td><input type="number" value="${closed}" onchange="updateInterviewData(${c.id},${j.id},'hcClosed',this.value)" style="width:60px"></td>
-                  <td>${j.hc - closed}</td>
-                  <td><input type="number" value="${j.closurePercent || 0}" onchange="updateInterviewData(${c.id},${j.id},'closurePercent',this.value)" style="width:60px">%</td>
-                  <td class="rev-achieved">RM ${achieved.toLocaleString()}</td>
-                  <td><input type="text" value="${j.interviewProgress || ''}" onchange="updateInterviewData(${c.id},${j.id},'interviewProgress',this.value)"></td>
+                  <td><input type="number" value="${j.hcInterview || 0}" onchange="updateInterviewData(${c.id},${j.id},'hcInterview',this.value)" style="width:60px"></td>
+                  <td><input type="number" value="${j.hcOffer || 0}" onchange="updateInterviewData(${c.id},${j.id},'hcOffer',this.value)" style="width:60px"></td>
+                  <td><input type="number" value="${closed}" onchange="updateInterviewData(${c.id},${j.id},'hcClosure',this.value)" style="width:60px"></td>
+                  <td>
+                    <select onchange="updateInterviewData(${c.id},${j.id},'invoiceRaised',this.value)" style="width:70px">
+                        <option value="No" ${j.invoiceRaised === 'No' ? 'selected' : ''}>No</option>
+                        <option value="Yes" ${j.invoiceRaised === 'Yes' ? 'selected' : ''}>Yes</option>
+                    </select>
+                  </td>
+                  <td><input type="text" value="${j.interviewRemarks || ''}" onchange="updateInterviewData(${c.id},${j.id},'interviewRemarks',this.value)"></td>
                 </tr>`;
             }).join('')}
           </tbody>
